@@ -190,9 +190,9 @@ var init = () => {
     }
 
     // Permanent Upgrades
-    theory.createPublicationUpgrade(0, currency, 1e10);
-    theory.createBuyAllUpgrade(1, currency, 1e13);
-    theory.createAutoBuyerUpgrade(2, currency, 1e20);
+    theory.createPublicationUpgrade(0, currency, 1);
+    theory.createBuyAllUpgrade(1, currency, 1);
+    theory.createAutoBuyerUpgrade(2, currency, 1);
 
     // Milestone Upgrades
     theory.setMilestoneCost(new CustomCost(total => BigNumber.from(getCustomCost(total)*tauMultiplier)));
