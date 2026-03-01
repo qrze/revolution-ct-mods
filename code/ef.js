@@ -1,3 +1,6 @@
+// THIS MOD IS BROKEN I WILL NOT BE FIXING IT
+
+
 import {CustomCost, ExponentialCost} from "./api/Costs";
 import { Localization } from "./api/Localization";
 import {BigNumber, parseBigNumber} from "./api/BigNumber";
