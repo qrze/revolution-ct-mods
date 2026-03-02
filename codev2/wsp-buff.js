@@ -13,7 +13,7 @@ var releaseOrder = "1";
 
 requiresGameVersion("1.4.33");
 
-var tauMultiplier = 1/2;
+var tauMultiplier = (1/2);
 
 var q = BigNumber.ONE;
 var chi = BigNumber.ONE;
@@ -36,7 +36,7 @@ var init = () => {
     {
         let getDesc = (level) => "q_1=" + getQ1(level).toString(0);
         let getInfo = (level) => "q_1=" + getQ1(level).toString(0);
-        q1 = theory.createUpgrade(0, currency, new FirstFreeCost(new ExponentialCost((10, 3.38/4)^1.5));
+        q1 = theory.createUpgrade(0, currency, new FirstFreeCost(new ExponentialCost((10, 3.38/4)^1.5);
         q1.getDescription = (amount) => Utils.getMath(getDesc(q1.level));
         q1.getInfo = (amount) => Utils.getMathTo(getInfo(q1.level), getInfo(q1.level + amount));
     }
@@ -209,154 +209,6 @@ var getPublicationMultiplier = (tau) => tau.isZero ? BigNumber.ONE : tau.pow(Big
 var getPublicationMultiplierFormula = (symbol) => "{" + symbol + "}^{0.375/2}";
 var getTau = () => currency.value.pow(BigNumber.from((0.1*tauMultiplier)/2);
 var getCurrencyFromTau = (tau) => [tau.max(BigNumber.ONE).pow((10/tauMultiplier)/2), currency.symbol];
-var get2DGraphValue = () => currency.value.sign * (BigNumber.ONE + currency.value.abs()).log10().toNumber();
-
-var getN = (level) => BigNumber.from(level);
-var getQ1 = (level) => Utils.getStepwisePowerSum(level, 2, 10, 0);
-var getQ2 = (level) => BigNumber.TWO.pow(BigNumber.from(level));
-var getC1 = (level) => Utils.getStepwisePowerSum(level, 2, 50, 1);
-var getC2 = (level) => BigNumber.TWO.pow(BigNumber.from(level));
-var getQ1Exp = (level) => BigNumber.from(1 + level * 0.01);
-
-init();
-
-let getDesc = (level) => "c_2=2^{" + level + "}";
-        let getInfo = (level) => "c_2=" + getC2(level).toString(0);
-        c2 = theory.createUpgrade(4, currency, new ExponentialCost(1, 10));
-        c2.getDescription = (amount) => Utils.getMath(getDesc(c2.level));
-        c2.getInfo = (amount) => Utils.getMathTo(getInfo(c2.level), getInfo(c2.level + amount));
-    }
-
-    /////////////////////
-    // Permanent Upgrades
-    theory.createPublicationUpgrade(0, currency, 1);
-    theory.createBuyAllUpgrade(1, currency, 1);
-    theory.createAutoBuyerUpgrade(2, currency, 1);
-
-    /////////////////////
-    // Checkpoint Upgrades
-    theory.setMilestoneCost(new CustomCost(lvl => tauMultiplier*BigNumber.from(lvl < 5 ? 1 + 1.5*lvl : lvl < 6 ? 10 : lvl < 7 ? 14 : 20)));
-
-    {
-        q1Exp = theory.createMilestoneUpgrade(0, 4);
-        q1Exp.description = Localization.getUpgradeIncCustomExpDesc("q_1", "0.01");
-        q1Exp.info = Localization.getUpgradeIncCustomExpInfo("q_1", "0.01");
-        q1Exp.boughtOrRefunded = (_) => theory.invalidatePrimaryEquation();
-    }
-
-    {
-        c2Term = theory.createMilestoneUpgrade(1, 1);
-        c2Term.description = Localization.getUpgradeAddTermDesc("c_2");
-        c2Term.info = Localization.getUpgradeAddTermInfo("c_2");
-        c2Term.boughtOrRefunded = (_) => {theory.invalidatePrimaryEquation(); updateAvailability(); };
-    }
-
-    {
-        chiDivN = theory.createMilestoneUpgrade(2, 3);
-        updateChiDescAndInfo = () => {
-            chiDivN.description = Utils.getMathTo("c_1 + n" + (chiDivN.level > 0 ? ("/3^{" + chiDivN.level + "}") : ""), "c_1 + n/3^{" + (chiDivN.level + (chiDivN.level == 3 ? 0 : 1)) + "}");
-            chiDivN.info = chiDivN.description;
-        }
-        chiDivN.boughtOrRefunded = (_) => {theory.invalidateSecondaryEquation(); updateChiDescAndInfo(); updateSineRatio_flag = true;}
-        updateChiDescAndInfo();
-    }
-
-    updateAvailability();
-}
-
-var updateAvailability = () => {
-    c2.isAvailable = c2Term.level > 0;
-}
-
-var srK_helper = (x) => { let x2 = x*x; return Math.log(x2 + 1/6 + 1/120/x2 + 1/810/x2/x2)/2 - 1; }
-
-// computes πx * Prod{k=1, n, 1-(x/k)^2} / sin(πx) 
-//          = 1 / Prod{k=n+1, infty, 1-(x/k)^2}
-//          = Г(n+1+x) * Г(n+1-x) / Г(n+1)^2
-//          = Г(n+1+K+x) * Г(n+1+K-x) / (Г(n+1+K)^2 * Prod{k=n+1, n+K, 1-(x/k)^2})
-// quickly (O(K), averages for (n,x)=(1157,1157.3184): ~0.25ms for K=1, ~0.35ms for K=5, ~0.43ms for K=10) 
-// and with fair accuracy (relative error: <1e-3 for K=0, <1e-6 for K=1, <1e8 for K=5, <1e-10 for K=10)
-var sineRatioK = (n, x, K=5) => {
-    if (n < 1 || x >= n + 1) return 0;
-    let N = n + 1 + K, x2 = x*x,
-        L1 = srK_helper(N + x), L2 = srK_helper(N - x), L3 = srK_helper(N),
-        result = N * (L1 + L2 - 2*L3) + x * (L1 - L2) - Math.log(1 - x2/N/N)/2;
-    for(let k = n + 1; k < N; ++k) result -= Math.log(1 - x2/k/k);
-    return BigNumber.from(result).exp();    
-}
-
-var tick = (elapsedTime, multiplier) => {
-    let dt = BigNumber.from(elapsedTime*multiplier);
-    let bonus = theory.publicationMultiplier;
-    let vq1 = getQ1(q1.level).pow(getQ1Exp(q1Exp.level));
-    let vq2 = getQ2(q2.level);
-    let vc2 = c2Term.level > 0 ? getC2(c2.level) : BigNumber.ONE;
-    
-    if (updateSineRatio_flag) {
-        let vn = getN(n.level);
-        let vc1 = getC1(c1.level);
-        chi = BigNumber.PI * vc1 * vn / (vc1 + vn / BigNumber.THREE.pow(BigNumber.from(chiDivN.level))) + BigNumber.ONE;
-        S = sineRatioK(n.level, chi.toNumber()/Math.PI);
-        updateSineRatio_flag = false;
-    }
-    let dq = dt * S * vc2;
-
-    q = q + dq.max(BigNumber.ZERO);
-    currency.value += bonus * vq1 * vq2 * q * dt;
-
-    theory.invalidateTertiaryEquation();
-}
-
-var getInternalState = () => q.toString();
-
-var setInternalState = (state) => {
-    let values = state.split(" ");
-    if (values.length > 0) q = parseBigNumber(values[0]);
-    updateChiDescAndInfo();
-    updateSineRatio_flag = true;
-}
-
-var postPublish = () => {
-    q = BigNumber.ONE;
-    updateSineRatio_flag = true;
-}
-
-var getPrimaryEquation = () => {
-    theory.primaryEquationHeight = 90;
-    let result = "\\begin{matrix}"
-    result += "\\dot{\\rho}=q_1";
-    if (q1Exp.level > 0) result += `^{${1+q1Exp.level*0.01}}`;
-    result += "q_2q,\\quad\\dot{q} = "
-	if (c2Term.level > 0) result += "c_2\\cdot ";
-	result += "\s_n(\\chi)/\\sin(\\chi)\\\\\\\\";
-	result += "s_n(x) := x\\cdot\\prod_{k=1}^n\\left(1-\\frac{x}{k\\pi}^{\\ 2}\\right) "
-    result += "\\end{matrix}"
-    return result;
-}
-
-var getSecondaryEquation = () => {
-    let result = theory.latexSymbol + "=\\max\\rho^{0.4},\\quad\\chi =\\pi\\cdot\\frac{c_1n}{c_1+n";
-    if (chiDivN.level > 0) result += "/3^{" + chiDivN.level + "}";
-    result += "}+1";
-    return result;
-}
-
-var getTertiaryEquation = () => {
-    let result = "";
-
-    result += "\\begin{matrix}q=";
-    result += q.toString();
-    result += ",&\\chi =";
-    result += chi.toString(3);
-    result += "\\end{matrix}";
-
-    return result;
-}
-
-var getPublicationMultiplier = (tau) => tau.isZero ? BigNumber.ONE : tau.pow(BigNumber.from(10/tauMultiplier));
-var getPublicationMultiplierFormula = (symbol) => "{" + symbol + "}^{10}";
-var getTau = () => currency.value.pow(BigNumber.from(1*tauMultiplier));
-var getCurrencyFromTau = (tau) => [tau.max(BigNumber.ONE).pow(10/tauMultiplier), currency.symbol];
 var get2DGraphValue = () => currency.value.sign * (BigNumber.ONE + currency.value.abs()).log10().toNumber();
 
 var getN = (level) => BigNumber.from(level);
